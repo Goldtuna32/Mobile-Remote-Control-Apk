@@ -52,21 +52,22 @@ class IrService {
         'No IR blaster detected on this device.',
       );
     }
-
     if (pattern.isEmpty) {
       throw IrException(IrErrorCode.invalidPattern, 'IR pattern is empty.');
     }
 
-    if (pattern.length % 2 == 0) {
-      debugPrint(
-        '[IrService] Warning: pattern has even pulse count — may be malformed.',
-      );
-    }
+    final normalized = pattern.length % 2 == 0
+        ? pattern.sublist(0, pattern.length - 1)
+        : pattern;
+
+    debugPrint(
+      '[IrService] Transmitting ${normalized.length} pulses at ${carrierFrequency}Hz',
+    );
 
     try {
       await _channel.invokeMethod<void>('transmit', {
         'frequency': carrierFrequency,
-        'pattern': pattern,
+        'pattern': normalized,
       });
     } on PlatformException catch (e) {
       debugPrint('[IrService] transmit failed: ${e.code} — ${e.message}');

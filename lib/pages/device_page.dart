@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../data/hardware_database.dart';
+import '../pages/setup_verification_page.dart';
 
 class DevicePage extends StatefulWidget {
-  const DevicePage({Key? key}) : super(key: key);
+  const DevicePage({super.key});
 
   @override
   State<DevicePage> createState() => _DevicePageState();
@@ -245,10 +246,12 @@ class _DevicePageState extends State<DevicePage> {
 
   void _handleBrandTap(String brandName) {
     HapticFeedback.lightImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: const Color(0xFF1E1E1E),
-        content: Text('Loading setup verification matching for $brandName...'),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => SetupVerificationPage(
+          categoryId: _selectedCategoryId!,
+          brandName: brandName,
+        ),
       ),
     );
   }

@@ -1,10 +1,11 @@
-import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remote_control/pages/home_page.dart';
 import 'package:remote_control/pages/loading_splashScreen.dart';
+import 'package:remote_control/pages/remote_control_page.dart';
 
 void main() {
-  runApp(DevicePreview(builder: (context) => MyApp()));
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -14,45 +15,48 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
-      theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      title: 'Remote Control',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      ),
+      home: const _SplashGate(),
+      routes: {
+        '/home': (context) => const HomePage(),
+        '/remote-control': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return RemoteControlPage(
+            categoryId: args['categoryId'] as String,
+            brand: args['brand'] as String,
+            configIndex: args['configIndex'] as int,
+          );
+        },
+      },
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
+class _SplashGate extends StatefulWidget {
+  const _SplashGate();
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<_SplashGate> createState() => _SplashGateState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  bool isLoading = true;
+class _SplashGateState extends State<_SplashGate> {
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _navigateToHome();
-  }
-
-  void _navigateToHome() async {
-    await Future.delayed(const Duration(seconds: 5));
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-      });
-    }
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _isLoading = false);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: isLoading ? LoadingSplashscreen() : HomePage(),
-    );
+    return _isLoading ? const LoadingSplashscreen() : const HomePage();
   }
 }

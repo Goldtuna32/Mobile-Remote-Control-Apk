@@ -1,4 +1,4 @@
-package com.yourapp.universalremote
+package com.example.remote_control
 
 import android.content.Context
 import android.hardware.ConsumerIrManager

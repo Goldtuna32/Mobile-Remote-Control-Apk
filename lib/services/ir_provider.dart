@@ -71,13 +71,15 @@ class IrDebugState {
     this.log = const [],
   });
 
+  static const _absent = Object();
+
   IrDebugState copyWith({
-    bool? hasBlaster,
+    Object? hasBlaster = _absent,
     bool? isChecking,
     IrTransmitState? transmitState,
     List<String>? log,
   }) => IrDebugState(
-    hasBlaster: hasBlaster ?? this.hasBlaster,
+    hasBlaster: hasBlaster == _absent ? this.hasBlaster : hasBlaster as bool?,
     isChecking: isChecking ?? this.isChecking,
     transmitState: transmitState ?? this.transmitState,
     log: log ?? this.log,
