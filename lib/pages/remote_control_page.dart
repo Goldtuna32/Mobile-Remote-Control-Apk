@@ -125,37 +125,76 @@ class _RemoteControlPageState extends State<RemoteControlPage> {
 
   @override
   Widget build(BuildContext context) {
+    final accent = switch (_deviceType) {
+      DeviceType.ac => const Color(0xFF3DAA72),
+      DeviceType.tv => const Color(0xFF6C63FF),
+      DeviceType.fan => const Color(0xFF1A7A6E),
+      DeviceType.generic => const Color(0xFF6C63FF),
+    };
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
         leading: IconButton(
+          tooltip: 'Back',
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           '${widget.brand} ${widget.categoryId.toUpperCase()}',
-          style: const TextStyle(color: Colors.white, fontSize: 18),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.2,
+          ),
         ),
         centerTitle: true,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.white))
-          : Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-              child: switch (_deviceType) {
-                DeviceType.ac => _buildAcLayout(),
-                DeviceType.tv => _buildTvLayout(),
-                DeviceType.fan => _buildFanLayout(),
-                DeviceType.generic => _buildGenericLayout(),
-              },
+          : Stack(
+              children: [
+                // Subtle background glow
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          center: const Alignment(0.0, -0.35),
+                          radius: 1.2,
+                          colors: [
+                            accent.withValues(
+                              alpha: (0.10 * 255).round() / 255,
+                            ),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 24,
+                  ),
+                  child: switch (_deviceType) {
+                    DeviceType.ac => _buildAcLayout(accent: accent),
+                    DeviceType.tv => _buildTvLayout(accent: accent),
+                    DeviceType.fan => _buildFanLayout(accent: accent),
+                    DeviceType.generic => _buildGenericLayout(accent: accent),
+                  },
+                ),
+              ],
             ),
     );
   }
 
   // ── AC layout ────────────────────────────────────────
-  Widget _buildAcLayout() {
+  Widget _buildAcLayout({required Color accent}) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -166,6 +205,16 @@ class _RemoteControlPageState extends State<RemoteControlPage> {
           decoration: BoxDecoration(
             color: const Color(0xFF1E1E1E),
             borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: accent.withValues(alpha: (0.18 * 255).round() / 255),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: accent.withValues(alpha: (0.10 * 255).round() / 255),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -274,7 +323,7 @@ class _RemoteControlPageState extends State<RemoteControlPage> {
   }
 
   // ── TV layout ────────────────────────────────────────
-  Widget _buildTvLayout() {
+  Widget _buildTvLayout({required Color accent}) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -337,7 +386,7 @@ class _RemoteControlPageState extends State<RemoteControlPage> {
   }
 
   // ── Fan layout ───────────────────────────────────────
-  Widget _buildFanLayout() {
+  Widget _buildFanLayout({required Color accent}) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -378,7 +427,7 @@ class _RemoteControlPageState extends State<RemoteControlPage> {
   }
 
   // ── Generic layout (fallback) ────────────────────────
-  Widget _buildGenericLayout() {
+  Widget _buildGenericLayout({required Color accent}) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -419,9 +468,23 @@ class _RemoteButton extends StatelessWidget {
           Container(
             width: size,
             height: size,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-            child: Icon(icon, color: Colors.white, size: size * 0.45),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: (0.28 * 255).round() / 255),
+                  blurRadius: 18,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+            ),
+            child: Center(
+              child: Icon(icon, color: Colors.white, size: size * 0.45),
+            ),
           ),
+
           const SizedBox(height: 8),
           Text(
             label,

@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:remote_control/pages/home_page.dart';
 import 'package:remote_control/pages/loading_splashScreen.dart';
 import 'package:remote_control/pages/remote_control_page.dart';
+import 'package:remote_control/pages/welcome_page.dart';
 
 void main() {
-  runApp(const ProviderScope(child: MyApp()));
+  runApp(ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -57,6 +58,6 @@ class _SplashGateState extends State<_SplashGate> {
 
   @override
   Widget build(BuildContext context) {
-    return _isLoading ? const LoadingSplashscreen() : const HomePage();
+    return _isLoading ? const LoadingSplashscreen() : const WelcomePage();
   }
 }

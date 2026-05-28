@@ -1,4 +1,3 @@
-import 'dart:convert';
 import '../services/ir_code.dart';
 
 class SavedDevice {
