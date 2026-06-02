@@ -16,12 +16,9 @@ class _DevicePageState extends State<DevicePage> {
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
 
-  // --- Color Palette ---
   static const Color _bgColor = Color(0xFF0A0A0A);
   static const Color _cardColor = Color(0xFF1C1C1E);
-  static const Color _accentColor = Color(
-    0xFF5E5CE6,
-  ); // Modern Purple/Blue Accent
+  static const Color _accentColor = Color(0xFF5E5CE6);
   static const Color _textPrimary = Color(0xFFFFFFFF);
   static const Color _textSecondary = Color(0xFF8E8E93);
 
@@ -88,7 +85,6 @@ class _DevicePageState extends State<DevicePage> {
         switchInCurve: Curves.easeInOut,
         switchOutCurve: Curves.easeInOut,
         transitionBuilder: (child, animation) {
-          // Slide transition from right
           return SlideTransition(
             position:
                 Tween<Offset>(
@@ -196,7 +192,6 @@ class _DevicePageState extends State<DevicePage> {
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 20),
             children: [
-              // Popular Brands Section
               if (popularBrands.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 const Text(
@@ -224,7 +219,6 @@ class _DevicePageState extends State<DevicePage> {
                 const SizedBox(height: 32),
               ],
 
-              // All Brands Section
               if (allBrands.isNotEmpty) ...[
                 const Text(
                   'ALL BRANDS',
@@ -283,8 +277,6 @@ class _DevicePageState extends State<DevicePage> {
     );
   }
 }
-
-// --- Custom Widgets ---
 
 class _CategoryCard extends StatefulWidget {
   final DeviceCategory category;

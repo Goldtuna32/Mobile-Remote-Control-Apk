@@ -90,7 +90,6 @@ class HardwareDatabase {
       Brand(name: 'Cisco'),
     ],
 
-    // ── NEW ENTRIES BELOW ──
     'fan': [
       Brand(name: 'Xiaomi', isPopular: true),
       Brand(name: 'Panasonic', isPopular: true),
@@ -142,10 +141,6 @@ class HardwareDatabase {
   };
 
   static List<Brand> getBrandsForCategory(String categoryId) {
-    return brandsByCategory[categoryId] ??
-        [
-          const Brand(name: 'Generic Brand V1', isPopular: true),
-          const Brand(name: 'Universal Learning Profile'),
-        ];
+    return brandsByCategory[categoryId] ?? [];
   }
 }
