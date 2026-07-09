@@ -16,6 +16,7 @@ class IrService {
       debugPrint('[IrService] hasIrEmitter failed: ${e.message}');
       _hasBlaster = false;
     } on MissingPluginException {
+      // Running on emulator or iOS — IR never available
       debugPrint('[IrService] Platform channel not found (emulator/iOS)');
       _hasBlaster = false;
     }

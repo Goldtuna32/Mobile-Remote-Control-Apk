@@ -89,14 +89,7 @@ class _WelcomePageState extends State<WelcomePage>
 
   Future<void> _finish() async {
     HapticFeedback.mediumImpact();
-
-    debugPrint('[Onboarding] Finishing wizard. Saving to SharedPreferences...');
     final prefs = await SharedPreferences.getInstance();
-
-    await prefs.setString(
-      'user_onboarded_at',
-      DateTime.now().toIso8601String(),
-    );
     await prefs.setBool('onboarding_done', true);
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
@@ -132,6 +125,7 @@ class _WelcomePageState extends State<WelcomePage>
         child: SafeArea(
           child: Column(
             children: [
+              // ── Skip button ──────────────────────────
               Align(
                 alignment: Alignment.topRight,
                 child: Padding(
@@ -154,6 +148,7 @@ class _WelcomePageState extends State<WelcomePage>
                 ),
               ),
 
+              // ── Page view ────────────────────────────
               Expanded(
                 child: PageView.builder(
                   controller: _pageController,
@@ -170,10 +165,12 @@ class _WelcomePageState extends State<WelcomePage>
                 ),
               ),
 
+              // ── Dots + button ────────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(32, 16, 32, 40),
                 child: Column(
                   children: [
+                    // Dot indicators
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(_slides.length, (i) {
@@ -272,6 +269,7 @@ class _WelcomePageState extends State<WelcomePage>
   }
 }
 
+// ── Slide content widget ─────────────────────────────────
 class _SlideContent extends StatelessWidget {
   final _OnboardSlide slide;
   final Animation<double> fadeAnim;
@@ -304,6 +302,7 @@ class _SlideContent extends StatelessWidget {
 
               const SizedBox(height: 52),
 
+              // Title
               Text(
                 slide.title,
                 textAlign: TextAlign.center,
@@ -318,6 +317,7 @@ class _SlideContent extends StatelessWidget {
 
               const SizedBox(height: 16),
 
+              // Description
               Text(
                 slide.description,
                 textAlign: TextAlign.center,
@@ -336,6 +336,7 @@ class _SlideContent extends StatelessWidget {
   }
 }
 
+// ── Illustration widget ──────────────────────────────────
 class _Illustration extends StatelessWidget {
   final _IllustrationType type;
   final Color color;
@@ -354,6 +355,7 @@ class _Illustration extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
+          // Outer ring
           Container(
             width: 180,
             height: 180,
@@ -362,6 +364,7 @@ class _Illustration extends StatelessWidget {
               border: Border.all(color: color.withOpacity(0.15), width: 1.5),
             ),
           ),
+          // Inner content
           Container(
             width: 110,
             height: 110,
@@ -371,6 +374,7 @@ class _Illustration extends StatelessWidget {
             ),
             child: Icon(_iconForType(type), color: color, size: 52),
           ),
+          // Floating mini badges
           ..._badgesForType(type, color),
         ],
       ),
@@ -447,6 +451,7 @@ class _Illustration extends StatelessWidget {
   }
 }
 
+// ── Data models ──────────────────────────────────────────
 enum _IllustrationType { addDevice, control, enjoy }
 
 class _OnboardSlide {

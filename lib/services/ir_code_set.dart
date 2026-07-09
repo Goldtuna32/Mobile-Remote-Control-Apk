@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:remote_control/data/ir_database.dart';
 import 'ir_code.dart';
 
@@ -14,36 +13,9 @@ class IrCodeService {
     required String categoryId,
     required String brand,
   }) async {
-    try {
-      debugPrint(
-        '[IrCodeService] Querying Category: $categoryId | Brand: $brand',
-      );
-
-      final List<IrCode> codes = IrDatabase.getCodes(categoryId, brand);
-      debugPrint('[IrCodeService] Found ${codes.length} codes');
-
-      if (codes.isEmpty) {
-        debugPrint(
-          '[IrCodeService] ⚠️ No real codes found. Injecting mock codes for UI testing.',
-        );
-        final mockCodes = [
-          IrCode(action: 'power', frequency: 38000, pattern: [1000, 1000]),
-          IrCode(action: 'volume_up', frequency: 38000, pattern: [1000, 1000]),
-          IrCode(
-            action: 'volume_down',
-            frequency: 38000,
-            pattern: [1000, 1000],
-          ),
-          IrCode(action: 'menu', frequency: 38000, pattern: [1000, 1000]),
-        ];
-        return [IrCodeSet(configIndex: 0, codes: mockCodes)];
-      }
-
-      return [IrCodeSet(configIndex: 1, codes: codes)];
-    } catch (e) {
-      debugPrint("Error converting configuration $e");
-      return [];
-    }
+    final codes = IrDatabase.getCodes(categoryId, brand);
+    if (codes.isEmpty) return [];
+    return [IrCodeSet(configIndex: 1, codes: codes)];
   }
 
   static Future<IrCode?> getCode(

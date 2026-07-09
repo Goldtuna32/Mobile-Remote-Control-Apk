@@ -1,11 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:network_info_plus/network_info_plus.dart';
 import 'package:remote_control/models/saved_device.dart';
 import 'package:remote_control/services/device_storage_service.dart';
-import 'package:remote_control/services/ir_code.dart';
 import 'package:remote_control/services/ir_code_set.dart';
 import '../services/ir_service.dart';
 
@@ -31,102 +28,27 @@ class _SetupVerificationPageState extends ConsumerState<SetupVerificationPage> {
   bool _isSending = false;
   String _statusText = '';
 
-  bool _isScanningNetwork = false;
-  String? _discoveredDeviceIp;
-
   @override
   void initState() {
     super.initState();
-    _initializeSetup();
+    _loadConfigurations();
   }
 
-  Future<void> _initializeSetup() async {
+  Future<void> _loadConfigurations() async {
     setState(() => _isLoading = true);
 
-    try {
-      final configs = await IrCodeService.getConfigurationsForBrand(
-        categoryId: widget.categoryId,
-        brand: widget.brandName,
-      );
+    final configs = await IrCodeService.getConfigurationsForBrand(
+      categoryId: widget.categoryId,
+      brand: widget.brandName,
+    );
+
+    setState(() {
       _configurations = configs;
-    } catch (e) {
-      debugPrint('[SetupVerification] Error loading IR configurations: $e');
-    }
-
-    if (widget.categoryId == 'tv' || widget.categoryId == 'smartbox') {
-      _updateStatusText();
-      setState(() => _isLoading = false);
-
-      await _performNetworkDiscovery();
-    } else {
-      setState(() => _isLoading = false);
-      _updateStatusText();
-    }
-  }
-
-  void _updateStatusText() {
-    if (!mounted) return;
-    setState(() {
-      if (_discoveredDeviceIp != null) {
-        _statusText =
-            'Smart TV discovered over Wi-Fi!\n'
-            'You can save and connect directly via your local network layout.';
-      } else if (_configurations.isNotEmpty) {
-        _statusText =
-            'Point the remote at your ${widget.categoryId.toUpperCase()} and tap the button.\n'
-            'Make sure your equipment responds.';
-      } else {
-        _statusText =
-            'No remote configurations or network devices found for '
-            '${widget.brandName} ${widget.categoryId.toUpperCase()}.';
-      }
+      _isLoading = false;
+      _statusText =
+          'Point the remote at ${widget.categoryId.toUpperCase()} and tap the button.\n'
+          'Make sure ${widget.categoryId.toUpperCase()} responds.';
     });
-  }
-
-  Future<void> _performNetworkDiscovery() async {
-    setState(() {
-      _isScanningNetwork = true;
-    });
-
-    try {
-      final info = NetworkInfo();
-      final localIp = await info.getWifiIP();
-
-      if (localIp != null && localIp.contains('.')) {
-        final subnet = localIp.substring(0, localIp.lastIndexOf('.') + 1);
-        final targetPorts = [8001, 8002, 8060];
-
-        for (int i = 1; i < 255; i++) {
-          final candidateIp = '$subnet$i';
-          if (candidateIp == localIp) continue;
-
-          for (final port in targetPorts) {
-            try {
-              final socket = await Socket.connect(
-                candidateIp,
-                port,
-                timeout: const Duration(milliseconds: 100),
-              );
-              socket.destroy();
-
-              if (mounted) {
-                setState(() {
-                  _discoveredDeviceIp = candidateIp;
-                });
-              }
-              break;
-            } catch (_) {}
-          }
-          if (_discoveredDeviceIp != null) break;
-        }
-      }
-    } catch (_) {
-    } finally {
-      if (mounted) {
-        setState(() => _isScanningNetwork = false);
-        _updateStatusText();
-      }
-    }
   }
 
   Future<void> _sendPowerSignal() async {
@@ -171,20 +93,9 @@ class _SetupVerificationPageState extends ConsumerState<SetupVerificationPage> {
   }
 
   void _onDeviceResponded() async {
-    if (_configurations.isEmpty && _discoveredDeviceIp == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Cannot save device: No IR code or Wi-Fi targets verified.',
-          ),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
-
     HapticFeedback.heavyImpact();
 
+    // Ask for room name
     final roomName = await showDialog<String>(
       context: context,
       builder: (ctx) {
@@ -226,19 +137,14 @@ class _SetupVerificationPageState extends ConsumerState<SetupVerificationPage> {
 
     if (roomName == null || roomName.isEmpty) return;
 
-    final List<IrCode> configCodes = _configurations.isNotEmpty
-        ? _configurations[_currentIndex].codes.cast<IrCode>()
-        : <IrCode>[];
-
+    final config = _configurations[_currentIndex];
     final device = SavedDevice(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       categoryId: widget.categoryId,
       brand: widget.brandName,
-      roomName: _discoveredDeviceIp != null
-          ? '$roomName ($_discoveredDeviceIp)'
-          : roomName,
+      roomName: roomName,
       configIndex: _currentIndex,
-      codes: configCodes,
+      codes: config.codes,
     );
 
     await DeviceStorageService.saveDevice(device);
@@ -251,7 +157,7 @@ class _SetupVerificationPageState extends ConsumerState<SetupVerificationPage> {
         'categoryId': widget.categoryId,
         'brand': widget.brandName,
         'configIndex': _currentIndex,
-        'savedDevice': device,
+        'savedDevice': device, // pass full device so no re-fetch needed
       },
     );
   }
@@ -259,9 +165,6 @@ class _SetupVerificationPageState extends ConsumerState<SetupVerificationPage> {
   @override
   Widget build(BuildContext context) {
     final hasNext = _currentIndex < (_configurations.length - 1);
-    final isWifiReady = _discoveredDeviceIp != null;
-    final canProceed = _configurations.isNotEmpty || isWifiReady;
-
     final configLabel = _configurations.isEmpty
         ? ''
         : 'Checking available configurations '
@@ -293,14 +196,9 @@ class _SetupVerificationPageState extends ConsumerState<SetupVerificationPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 48),
 
-                  if (widget.categoryId == 'tv' ||
-                      widget.categoryId == 'smartbox')
-                    _buildNetworkStatusBanner(),
-
-                  const SizedBox(height: 24),
-
+                  // ── Instruction text ──
                   Text(
                     _statusText,
                     style: const TextStyle(
@@ -313,7 +211,8 @@ class _SetupVerificationPageState extends ConsumerState<SetupVerificationPage> {
 
                   const SizedBox(height: 20),
 
-                  if (_configurations.isNotEmpty) ...[
+                  // ── Config counter (blue, matches screenshot) ──
+                  if (_configurations.isNotEmpty)
                     Text(
                       configLabel,
                       style: const TextStyle(
@@ -321,176 +220,91 @@ class _SetupVerificationPageState extends ConsumerState<SetupVerificationPage> {
                         fontSize: 16,
                       ),
                     ),
-                    const Spacer(),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        GestureDetector(
-                          onTap: _sendPowerSignal,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _isSending
-                                  ? const Color(0xFF2E7D52)
-                                  : const Color(0xFF3DAA72),
-                            ),
-                            child: _isSending
-                                ? const Center(
-                                    child: SizedBox(
-                                      width: 28,
-                                      height: 28,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2.5,
-                                      ),
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.power_settings_new_rounded,
-                                    color: Colors.white,
-                                    size: 42,
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(width: 32),
-                        if (hasNext)
-                          GestureDetector(
-                            onTap: _nextConfiguration,
-                            child: Container(
-                              width: 56,
-                              height: 56,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Color(0xFF2A2A2A),
-                              ),
-                              child: const Icon(
-                                Icons.chevron_right_rounded,
-                                color: Colors.white54,
-                                size: 32,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ] else ...[
-                    const Spacer(),
-                    Center(
-                      child: Text(
-                        _isScanningNetwork
-                            ? 'Scanning network for smart features...'
-                            : 'No IR configuration profile available.',
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ],
 
                   const Spacer(),
 
-                  if (canProceed)
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: _onDeviceResponded,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: isWifiReady
-                              ? const Color(0xFF3DAA72)
-                              : const Color(0xFF1E1E1E),
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                  // ── Buttons row ──
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Power button (green circle)
+                      GestureDetector(
+                        onTap: _sendPowerSignal,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _isSending
+                                ? const Color(0xFF2E7D52)
+                                : const Color(0xFF3DAA72),
                           ),
-                        ),
-                        child: Text(
-                          isWifiReady
-                              ? 'Connect via Wi-Fi Mode'
-                              : 'Device responded — done',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
+                          child: _isSending
+                              ? const Center(
+                                  child: SizedBox(
+                                    width: 28,
+                                    height: 28,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.power_settings_new_rounded,
+                                  color: Colors.white,
+                                  size: 42,
+                                ),
                         ),
                       ),
+
+                      const SizedBox(width: 32),
+
+                      if (hasNext)
+                        GestureDetector(
+                          onTap: _nextConfiguration,
+                          child: Container(
+                            width: 56,
+                            height: 56,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFF2A2A2A),
+                            ),
+                            child: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: Colors.white54,
+                              size: 32,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _onDeviceResponded,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E1E1E),
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Device responded — done',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
                     ),
+                  ),
 
                   const SizedBox(height: 48),
                 ],
               ),
             ),
-    );
-  }
-
-  Widget _buildNetworkStatusBanner() {
-    final hasFoundDevice = _discoveredDeviceIp != null;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: hasFoundDevice
-            ? const Color(0xFF142B20)
-            : const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: hasFoundDevice
-              ? const Color(0xFF3DAA72).withValues(alpha: 0.3)
-              : Colors.white10,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            hasFoundDevice
-                ? Icons.wifi_find_rounded
-                : Icons.wifi_tethering_rounded,
-            color: hasFoundDevice ? const Color(0xFF3DAA72) : Colors.grey,
-            size: 24,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  hasFoundDevice
-                      ? 'Smart TV Detected Online!'
-                      : 'Checking Wi-Fi Network...',
-                  style: TextStyle(
-                    color: hasFoundDevice
-                        ? const Color(0xFF3DAA72)
-                        : Colors.white70,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  hasFoundDevice
-                      ? 'Found at IP $_discoveredDeviceIp. Smart control active.'
-                      : (_isScanningNetwork
-                            ? 'Searching local network bands...'
-                            : 'IR Only Mode active. Connect to same Wi-Fi.'),
-                  style: const TextStyle(color: Colors.white38, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          if (_isScanningNetwork)
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.grey,
-              ),
-            ),
-        ],
-      ),
     );
   }
 }

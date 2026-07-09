@@ -59,7 +59,7 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.black,
         elevation: 0,
         centerTitle: false,
-        titleSpacing: 25,
+        titleSpacing: 0,
         title: const Text(
           'Mi Remote',
           style: TextStyle(
@@ -78,7 +78,7 @@ class _HomePageState extends State<HomePage> {
                 context,
                 MaterialPageRoute(builder: (_) => const DevicePage()),
               );
-              _loadDevices();
+              _loadDevices(); // refresh after returning
             },
           ),
         ],
