@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 class IrService {
   IrService._();
 
-  static const _channel = MethodChannel('com.yourapp/ir_blaster');
+  static const _channel = MethodChannel(
+    'com.example.remote_control/ir_blaster',
+  );
 
   static bool? _hasBlaster;
 

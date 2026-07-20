@@ -45,6 +45,7 @@ dependencies:
   iconify_flutter: ^0.0.7
   shared_preferences: ^2.5.5
   flutter_launcher_icons: ^0.14.4
+  connectivity_plus: ^7.3.0
 
 dev_dependencies:
   flutter_test:

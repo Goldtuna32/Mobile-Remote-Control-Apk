@@ -3,6 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_page.dart';
 
+const _bg = Color(0xFF080810);
+// const _surface = Color(0xFF10101C);
+const _border = Color(0xFF22223A);
+const _textPri = Color(0xFFF2F2FA);
+const _textSec = Color(0xFF7070A0);
+
 class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});
 
@@ -15,75 +21,71 @@ class _WelcomePageState extends State<WelcomePage>
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
+  late AnimationController _contentCtrl;
+  late Animation<double> _contentFade;
+  late Animation<Offset> _contentSlide;
 
-  final List<_OnboardSlide> _slides = const [
-    _OnboardSlide(
-      icon: Icons.add_circle_outline_rounded,
-      accentColor: Color(0xFF42A5F5),
-      title: 'Add Your Devices',
-      description:
-          'Choose from hundreds of brands across AC, TV, fans and more. '
-          'Set up your device in seconds.',
-      illustrationType: _IllustrationType.addDevice,
+  // IR ring animation on page 2 (control slide)
+  late AnimationController _ringCtrl;
+  late Animation<double> _ringAnim;
+
+  final List<_Slide> _slides = const [
+    _Slide(
+      accent: Color(0xFF6C63FF),
+      title: 'All your remotes\nin one place',
+      body:
+          'TV, AC, fan — add any device in seconds and control it from your phone.',
+      type: _SlideType.devices,
     ),
-    _OnboardSlide(
-      icon: Icons.wifi_tethering_rounded,
-      accentColor: Color(0xFF66BB6A),
-      title: 'Control with IR',
-      description:
-          'Point your phone at any device and take control. '
-          'No Wi-Fi or Bluetooth needed — pure infrared.',
-      illustrationType: _IllustrationType.control,
+    _Slide(
+      accent: Color(0xFFFFB547),
+      title: 'Infrared that\njust works',
+      body: 'No Wi-Fi, no pairing, no setup. Point your phone and it responds.',
+      type: _SlideType.ir,
     ),
-    _OnboardSlide(
-      icon: Icons.auto_awesome_rounded,
-      accentColor: Color(0xFFFFB74D),
-      title: 'Enjoy the Comfort',
-      description:
-          'All your remotes in one place. Switch rooms, '
-          'adjust temperature, and enjoy a seamless smart home.',
-      illustrationType: _IllustrationType.enjoy,
+    _Slide(
+      accent: Color(0xFF3ECF8E),
+      title: 'Ready when\nyou are',
+      body:
+          'Open the app, pick a device, and control. Every room, every device.',
+      type: _SlideType.ready,
     ),
   ];
 
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
+    _contentCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
-    _slideController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.08),
+    _contentFade = CurvedAnimation(parent: _contentCtrl, curve: Curves.easeOut);
+    _contentSlide = Tween<Offset>(
+      begin: const Offset(0, 0.06),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
-    _fadeController.forward();
-    _slideController.forward();
+    ).animate(CurvedAnimation(parent: _contentCtrl, curve: Curves.easeOut));
+
+    _ringCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat();
+    _ringAnim = CurvedAnimation(parent: _ringCtrl, curve: Curves.easeInOut);
+
+    _contentCtrl.forward();
   }
 
   @override
   void dispose() {
     _pageController.dispose();
-    _fadeController.dispose();
-    _slideController.dispose();
+    _contentCtrl.dispose();
+    _ringCtrl.dispose();
     super.dispose();
   }
 
   void _onPageChanged(int index) {
     setState(() => _currentPage = index);
-    _fadeController.reset();
-    _slideController.reset();
-    _fadeController.forward();
-    _slideController.forward();
+    _contentCtrl.reset();
+    _contentCtrl.forward();
     HapticFeedback.selectionClick();
   }
 
@@ -102,10 +104,10 @@ class _WelcomePageState extends State<WelcomePage>
     );
   }
 
-  void _nextPage() {
+  void _next() {
     if (_currentPage < _slides.length - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 380),
         curve: Curves.easeInOut,
       );
     } else {
@@ -119,141 +121,135 @@ class _WelcomePageState extends State<WelcomePage>
     final isLast = _currentPage == _slides.length - 1;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: _bg,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
         child: SafeArea(
           child: Column(
             children: [
-              // ── Skip button ──────────────────────────
+              // ── Skip ──
               Align(
                 alignment: Alignment.topRight,
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 12, right: 20),
+                  padding: const EdgeInsets.only(top: 8, right: 20),
                   child: AnimatedOpacity(
                     opacity: isLast ? 0 : 1,
-                    duration: const Duration(milliseconds: 300),
+                    duration: const Duration(milliseconds: 250),
                     child: TextButton(
                       onPressed: isLast ? null : _finish,
                       child: const Text(
                         'Skip',
-                        style: TextStyle(
-                          color: Color(0xFF666666),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w400,
-                        ),
+                        style: TextStyle(color: _textSec, fontSize: 14),
                       ),
                     ),
                   ),
                 ),
               ),
 
-              // ── Page view ────────────────────────────
+              // ── Page view ──
               Expanded(
                 child: PageView.builder(
                   controller: _pageController,
                   onPageChanged: _onPageChanged,
                   itemCount: _slides.length,
-                  itemBuilder: (context, index) {
-                    return _SlideContent(
-                      slide: _slides[index],
-                      fadeAnim: _fadeAnim,
-                      slideAnim: _slideAnim,
-                      isActive: index == _currentPage,
-                    );
-                  },
+                  itemBuilder: (_, i) => _SlideView(
+                    slide: _slides[i],
+                    fadeAnim: _contentFade,
+                    slideAnim: _contentSlide,
+                    ringAnim: _ringAnim,
+                    isActive: i == _currentPage,
+                  ),
                 ),
               ),
 
-              // ── Dots + button ────────────────────────
+              // ── Dots + CTA ──
               Padding(
-                padding: const EdgeInsets.fromLTRB(32, 16, 32, 40),
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
                 child: Column(
                   children: [
-                    // Dot indicators
+                    // Dots
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(_slides.length, (i) {
-                        final isActive = i == _currentPage;
+                        final active = i == _currentPage;
                         return AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeOut,
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: isActive ? 24 : 7,
-                          height: 7,
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          width: active ? 20 : 6,
+                          height: 6,
                           decoration: BoxDecoration(
-                            color: isActive
-                                ? slide.accentColor
-                                : const Color(0xFF2A2A2A),
-                            borderRadius: BorderRadius.circular(4),
+                            color: active ? slide.accent : _border,
+                            borderRadius: BorderRadius.circular(3),
                           ),
                         );
                       }),
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
 
-                    // Main action button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
+                    // CTA button
+                    GestureDetector(
+                      onTap: _next,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
+                        width: double.infinity,
+                        height: 56,
                         decoration: BoxDecoration(
-                          color: slide.accentColor,
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(18),
-                            onTap: _nextPage,
-                            child: Center(
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 250),
-                                child: isLast
-                                    ? const Row(
-                                        key: ValueKey('get_started'),
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            'Get Started',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 17,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          SizedBox(width: 8),
-                                          Icon(
-                                            Icons.arrow_forward_rounded,
-                                            color: Colors.white,
-                                            size: 20,
-                                          ),
-                                        ],
-                                      )
-                                    : const Row(
-                                        key: ValueKey('next'),
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            'Next',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 17,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          SizedBox(width: 8),
-                                          Icon(
-                                            Icons.chevron_right_rounded,
-                                            color: Colors.white,
-                                            size: 22,
-                                          ),
-                                        ],
-                                      ),
-                              ),
+                          color: slide.accent,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: slide.accent.withValues(alpha: 0.35),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
                             ),
+                          ],
+                        ),
+                        child: Center(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 220),
+                            child: isLast
+                                ? const Row(
+                                    key: ValueKey('start'),
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Get started',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Icon(
+                                        Icons.arrow_forward_rounded,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                    ],
+                                  )
+                                : const Row(
+                                    key: ValueKey('next'),
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Next',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Icon(
+                                        Icons.chevron_right_rounded,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ),
                           ),
                         ),
                       ),
@@ -269,17 +265,19 @@ class _WelcomePageState extends State<WelcomePage>
   }
 }
 
-// ── Slide content widget ─────────────────────────────────
-class _SlideContent extends StatelessWidget {
-  final _OnboardSlide slide;
+// ─── Slide view ───────────────────────────────────────────────────
+class _SlideView extends StatelessWidget {
+  final _Slide slide;
   final Animation<double> fadeAnim;
   final Animation<Offset> slideAnim;
+  final Animation<double> ringAnim;
   final bool isActive;
 
-  const _SlideContent({
+  const _SlideView({
     required this.slide,
     required this.fadeAnim,
     required this.slideAnim,
+    required this.ringAnim,
     required this.isActive,
   });
 
@@ -295,35 +293,28 @@ class _SlideContent extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Illustration
-              _Illustration(
-                type: slide.illustrationType,
-                color: slide.accentColor,
-              ),
+              _SlideIllustration(slide: slide, ringAnim: ringAnim),
+              const SizedBox(height: 48),
 
-              const SizedBox(height: 52),
-
-              // Title
+              // Title — deliberate line breaks in copy
               Text(
                 slide.title,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w600,
-                  height: 1.2,
-                  letterSpacing: -0.5,
+                  color: _textPri,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                  height: 1.15,
+                  letterSpacing: -0.8,
                 ),
               ),
-
-              const SizedBox(height: 16),
-
-              // Description
+              const SizedBox(height: 14),
               Text(
-                slide.description,
+                slide.body,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: Color(0xFF888888),
-                  fontSize: 16,
+                  color: _textSec,
+                  fontSize: 15,
                   height: 1.6,
                   fontWeight: FontWeight.w400,
                 ),
@@ -336,136 +327,216 @@ class _SlideContent extends StatelessWidget {
   }
 }
 
-// ── Illustration widget ──────────────────────────────────
-class _Illustration extends StatelessWidget {
-  final _IllustrationType type;
-  final Color color;
+// ─── Illustration ─────────────────────────────────────────────────
+class _SlideIllustration extends StatelessWidget {
+  final _Slide slide;
+  final Animation<double> ringAnim;
 
-  const _Illustration({required this.type, required this.color});
+  const _SlideIllustration({required this.slide, required this.ringAnim});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 220,
-      height: 220,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color.withOpacity(0.08),
-      ),
+    // IR slide gets the animated ring — the signature element
+    if (slide.type == _SlideType.ir) {
+      return AnimatedBuilder(
+        animation: ringAnim,
+        builder: (_, __) {
+          return SizedBox(
+            width: 200,
+            height: 200,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Expanding ring 1
+                _Ring(
+                  size: 80 + ringAnim.value * 110,
+                  opacity: (1 - ringAnim.value) * 0.5,
+                  color: slide.accent,
+                  width: 1.0,
+                ),
+                // Expanding ring 2 (offset phase)
+                _Ring(
+                  size: 80 + ((ringAnim.value + 0.5) % 1.0) * 110,
+                  opacity: (1 - (ringAnim.value + 0.5) % 1.0) * 0.35,
+                  color: slide.accent,
+                  width: 1.0,
+                ),
+                // Static middle ring
+                _Ring(
+                  size: 100,
+                  opacity: 0.15,
+                  color: slide.accent,
+                  width: 1.5,
+                ),
+                // Core
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: slide.accent.withValues(alpha: 0.12),
+                    border: Border.all(
+                      color: slide.accent.withValues(alpha: 0.4),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.sensors_rounded,
+                    color: slide.accent,
+                    size: 32,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
+    // Other slides: static layered icon composition
+    final icons = _iconsForType(slide.type);
+    return SizedBox(
+      width: 200,
+      height: 200,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Outer ring
+          // Outer soft glow
           Container(
-            width: 180,
-            height: 180,
+            width: 200,
+            height: 200,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: color.withOpacity(0.15), width: 1.5),
+              gradient: RadialGradient(
+                colors: [
+                  slide.accent.withValues(alpha: 0.08),
+                  Colors.transparent,
+                ],
+              ),
             ),
           ),
-          // Inner content
+          _Ring(size: 160, opacity: 0.1, color: slide.accent, width: 1),
+          // Core
           Container(
-            width: 110,
-            height: 110,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: color.withOpacity(0.12),
+              color: slide.accent.withValues(alpha: 0.12),
+              border: Border.all(
+                color: slide.accent.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
             ),
-            child: Icon(_iconForType(type), color: color, size: 52),
+            child: Icon(icons[0], color: slide.accent, size: 36),
           ),
-          // Floating mini badges
-          ..._badgesForType(type, color),
+          // Orbiting badges
+          if (icons.length > 1)
+            Positioned(
+              top: 24,
+              right: 24,
+              child: _SmallBadge(icon: icons[1], color: slide.accent),
+            ),
+          if (icons.length > 2)
+            Positioned(
+              bottom: 24,
+              left: 24,
+              child: _SmallBadge(icon: icons[2], color: slide.accent),
+            ),
+          if (icons.length > 3)
+            Positioned(
+              top: 24,
+              left: 24,
+              child: _SmallBadge(icon: icons[3], color: slide.accent),
+            ),
         ],
       ),
     );
   }
 
-  IconData _iconForType(_IllustrationType type) {
+  List<IconData> _iconsForType(_SlideType type) {
     switch (type) {
-      case _IllustrationType.addDevice:
-        return Icons.add_circle_outline_rounded;
-      case _IllustrationType.control:
-        return Icons.wifi_tethering_rounded;
-      case _IllustrationType.enjoy:
-        return Icons.auto_awesome_rounded;
+      case _SlideType.devices:
+        return [
+          Icons.devices_rounded,
+          Icons.tv_rounded,
+          Icons.air_rounded,
+          Icons.thermostat_rounded,
+        ];
+      case _SlideType.ready:
+        return [
+          Icons.check_circle_rounded,
+          Icons.bolt_rounded,
+          Icons.star_rounded,
+        ];
+      case _SlideType.ir:
+        return [Icons.sensors_rounded];
     }
   }
+}
 
-  List<Widget> _badgesForType(_IllustrationType type, Color color) {
-    switch (type) {
-      case _IllustrationType.addDevice:
-        return [
-          _floatingBadge(Icons.tv_rounded, color, top: 28, left: 28),
-          _floatingBadge(Icons.air_rounded, color, top: 28, right: 28),
-          _floatingBadge(Icons.album_rounded, color, bottom: 28, left: 28),
-          _floatingBadge(
-            Icons.speaker_group_rounded,
-            color,
-            bottom: 28,
-            right: 28,
-          ),
-        ];
-      case _IllustrationType.control:
-        return [
-          _floatingBadge(Icons.bolt_rounded, color, top: 32, right: 32),
-          _floatingBadge(Icons.sensors_rounded, color, bottom: 32, left: 32),
-        ];
-      case _IllustrationType.enjoy:
-        return [
-          _floatingBadge(Icons.star_rounded, color, top: 30, left: 40),
-          _floatingBadge(
-            Icons.check_circle_outline_rounded,
-            color,
-            bottom: 30,
-            right: 40,
-          ),
-        ];
-    }
-  }
+class _Ring extends StatelessWidget {
+  final double size;
+  final double opacity;
+  final Color color;
+  final double width;
 
-  Widget _floatingBadge(
-    IconData icon,
-    Color color, {
-    double? top,
-    double? bottom,
-    double? left,
-    double? right,
-  }) {
-    return Positioned(
-      top: top,
-      bottom: bottom,
-      left: left,
-      right: right,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
-          shape: BoxShape.circle,
-          border: Border.all(color: color.withOpacity(0.3), width: 1),
+  const _Ring({
+    required this.size,
+    required this.opacity,
+    required this.color,
+    required this.width,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: color.withValues(alpha: opacity),
+          width: width,
         ),
-        child: Icon(icon, color: color, size: 18),
       ),
     );
   }
 }
 
-// ── Data models ──────────────────────────────────────────
-enum _IllustrationType { addDevice, control, enjoy }
-
-class _OnboardSlide {
+class _SmallBadge extends StatelessWidget {
   final IconData icon;
-  final Color accentColor;
-  final String title;
-  final String description;
-  final _IllustrationType illustrationType;
+  final Color color;
+  const _SmallBadge({required this.icon, required this.color});
 
-  const _OnboardSlide({
-    required this.icon,
-    required this.accentColor,
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        shape: BoxShape.circle,
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+      ),
+      child: Icon(icon, color: color, size: 17),
+    );
+  }
+}
+
+// ─── Data ─────────────────────────────────────────────────────────
+enum _SlideType { devices, ir, ready }
+
+class _Slide {
+  final Color accent;
+  final String title;
+  final String body;
+  final _SlideType type;
+
+  const _Slide({
+    required this.accent,
     required this.title,
-    required this.description,
-    required this.illustrationType,
+    required this.body,
+    required this.type,
   });
 }
