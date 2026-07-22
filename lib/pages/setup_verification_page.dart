@@ -91,7 +91,8 @@ class _SetupVerificationPageState extends ConsumerState<SetupVerificationPage>
       orElse: () => config.codes.first,
     );
 
-    HapticFeedback.mediumImpact();
+    // ── HAPTIC: Distinct deep pulse indicating raw outbound signal transmission
+    HapticFeedback.heavyImpact();
     setState(() => _isSending = true);
 
     try {
@@ -101,6 +102,8 @@ class _SetupVerificationPageState extends ConsumerState<SetupVerificationPage>
       );
     } catch (e) {
       if (mounted) {
+        // ── HAPTIC: Quick consecutive light errors if pipeline misfires
+        HapticFeedback.lightImpact();
         _showErrorSnack('Signal failed: $e');
       }
     } finally {
@@ -110,7 +113,7 @@ class _SetupVerificationPageState extends ConsumerState<SetupVerificationPage>
 
   void _nextConfiguration() {
     if (_currentIndex < _configurations.length - 1) {
-      HapticFeedback.lightImpact();
+      HapticFeedback.selectionClick();
       setState(() {
         _currentIndex++;
         _deviceResponded = false;
@@ -403,18 +406,29 @@ class _SetupVerificationPageState extends ConsumerState<SetupVerificationPage>
                     ),
                     child: _deviceResponded
                         ? _ConfirmedBadge(key: const ValueKey('confirmed'))
-                        : _ResponseCard(
+                        : // Inside the build method body under _ResponseCard parameters:
+                          _ResponseCard(
                             key: const ValueKey('response'),
                             hasNext: hasNext,
                             onYes: () {
-                              HapticFeedback.mediumImpact();
+                              HapticFeedback.mediumImpact().then((_) {
+                                Future.delayed(
+                                  const Duration(milliseconds: 80),
+                                  () {
+                                    HapticFeedback.mediumImpact();
+                                  },
+                                );
+                              });
                               setState(() => _deviceResponded = true);
                             },
                             onNo: () {
+                              // ── HAPTIC: Single light feedback step
                               HapticFeedback.lightImpact();
                               if (hasNext) {
                                 _nextConfiguration();
                               } else {
+                                // Warning vibration
+                                HapticFeedback.vibrate();
                                 _showErrorSnack(
                                   'No more configs. Point directly at the device.',
                                 );

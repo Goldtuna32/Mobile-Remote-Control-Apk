@@ -32,9 +32,27 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Signing with debug keys per your configuration
             signingConfig = signingConfigs.getByName("debug")
+            
+            // Rename logic inside Kotlin DSL
+            applicationVariants.all {
+                val variant = this
+                variant.outputs.all {
+                    val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+                    val appName = "Remote Control"
+                    val buildTypeName = variant.buildType.name
+                    val flavorName = if (variant.flavorName.isNullOrEmpty()) "default" else variant.flavorName
+                    
+                    val newName = if (buildTypeName == "debug") {
+                        "app-$flavorName-debug.apk"
+                    } else {
+                        "${appName}_v${defaultConfig.versionName}_$flavorName.apk"
+                    }
+                    
+                    output.outputFileName = newName
+                }
+            }
         }
     }
 }
